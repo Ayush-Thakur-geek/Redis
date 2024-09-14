@@ -4,8 +4,17 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
+
+    private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+            2, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1000), r -> {
+                
+    });
+
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     System.out.println("Logs from your program will appear here!");
@@ -68,6 +77,8 @@ public class Main {
                         System.out.println("Responded with: ERR Unknown command");
                     }
                 }
+
+
             }
 
             // If readLine() returns null, the client has closed the connection
