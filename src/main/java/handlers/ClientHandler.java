@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
+    private static final ConcurrentHashMap<String, String> keyValueStore = new ConcurrentHashMap<>();
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -48,6 +51,30 @@ public class ClientHandler implements Runnable {
                             outWriter.flush();
                         }
                     }
+                    else if (args.length > 0 && args[0].equals("SET")) {
+                        if (args.length > 2) {
+                            SET(Arrays.copyOfRange(args, 1, args.length));
+                            outWriter.write("+OK\r\n");
+                            outWriter.flush();
+                        } else {
+                            outWriter.write("-ERR Missing argument\r\n");
+                            outWriter.flush();
+                        }
+                    } else if (args.length > 0 && args[0].equals("GET")) {
+                        if (args.length > 1) {
+                            String value = GET(args[1]);
+                            if (value == null) {
+                                outWriter.write("$-1\r\n");
+                            } else {
+                                outWriter.write("$" + value.length() + "\r\n" + value + "\r\n");
+                            }
+//                            outWriter.write("+" + value + "\r\n");
+                            outWriter.flush();
+                        } else {
+                            outWriter.write("-ERR Missing argument\r\n");
+                            outWriter.flush();
+                        }
+                    }
                     // Handle other commands as needed (e.g., COMMAND, DOCS)
                     else {
                         outWriter.write("-ERR Unknown command\r\n");
@@ -64,5 +91,18 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             System.out.println("IOException in processInfo: " + e.getMessage());
         }
+    }
+
+    private void SET(String[] args) {
+        // Implement the SET command here
+        if (keyValueStore.containsKey(args[0])) {
+            keyValueStore.replace(args[0], args[1]);
+        } else {
+            keyValueStore.put(args[0], args[1]);
+        }
+    }
+
+    private String GET(String key) {
+        return keyValueStore.get(key);
     }
 }
