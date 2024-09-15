@@ -1,7 +1,6 @@
-import java.io.BufferedReader;
+import handlers.ClientHandler;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -44,7 +43,7 @@ public class Main {
 
               //or
 
-              threadPoolExecutor.execute(() -> processInfo(finalClientSocket));
+              threadPoolExecutor.execute(new ClientHandler(finalClientSocket));
           }
 
         } catch (IOException e) {
@@ -59,46 +58,4 @@ public class Main {
           }
         }
   }
-    private static void processInfo(Socket clientSocket) {
-        try (
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                OutputStreamWriter outWriter = new OutputStreamWriter(clientSocket.getOutputStream())
-        ) {
-            String line;
-            System.out.println("Waiting for input...");
-            while ((line = in.readLine()) != null) {
-                System.out.println("Received: " + line);  // Debugging: print received line
-
-                if (line.startsWith("*")) {  // RESP array
-                    int argCount = Integer.parseInt(line.substring(1));
-                    String[] args = new String[argCount];
-
-                    for (int i = 0; i < argCount; i++) {
-                        in.readLine();  // Skip the length indicator line ($<length>)
-                        args[i] = in.readLine();  // Read actual argument
-                    }
-
-                    // Handle commands like PING
-                    if (args.length > 0 && args[0].equalsIgnoreCase("PING")) {
-                        outWriter.write("+PONG\r\n");
-                        outWriter.flush();
-                        System.out.println("Responded with: +PONG");
-                    }
-                    // Handle other commands as needed (e.g., COMMAND, DOCS)
-                    else {
-                        outWriter.write("-ERR Unknown command\r\n");
-                        outWriter.flush();
-                        System.out.println("Responded with: ERR Unknown command");
-                    }
-                }
-
-
-            }
-
-            // If readLine() returns null, the client has closed the connection
-            System.out.println("Client disconnected, closing connection.");
-        } catch (IOException e) {
-            System.out.println("IOException in processInfo: " + e.getMessage());
-        }
-    }
 }
