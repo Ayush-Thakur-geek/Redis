@@ -12,8 +12,10 @@ public class Main {
 
     private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
             2, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1000), r -> {
-                
-    });
+                Thread t = new Thread(r);
+                t.setDaemon(true);
+                return t;
+    }, new ThreadPoolExecutor.DiscardPolicy());
 
   public static void main(String[] args){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -29,9 +31,21 @@ public class Main {
           // ensures that we don't run into 'Address already in use' errors
           serverSocket.setReuseAddress(true);
           // Wait for connection from client.
-          clientSocket = serverSocket.accept();
+          while (true) {
+              clientSocket = serverSocket.accept();
+              System.out.println("Accepted connection fromn client: " + clientSocket.getInetAddress());
+              Socket finalClientSocket = clientSocket;
+//              threadPoolExecutor.execute(new Runnable() {
+//                  @Override
+//                  public void run() {
+//                      processInfo(finalClientSocket);
+//                  }
+//              });
 
-          processInfo(clientSocket);
+              //or
+
+              threadPoolExecutor.execute(() -> processInfo(finalClientSocket));
+          }
 
         } catch (IOException e) {
           System.out.println("IOException: " + e.getMessage());

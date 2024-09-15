@@ -19,3 +19,18 @@
 ####  -<b><i><u> new ThreadPoolExecutor.CallerRunsPolicy: </u></b></i> Executes the task in the caller's thread.
 ####  -<b><i><u> new ThreadPoolExecutor.DiscardPolicy: </u></b></i> Discards the task silently.
 ####  -<b><i><u> new ThreadPoolExecutor.DiscardOldestPolicy: </u></b></i> Discards the oldest task and adds the new task to the queue.
+
+## <i> Methods of ThreadPoolExecutor </i>:
+
+### <b> execute(Runnable command): </b> Executes the given task sometime in the future.
+### <b> submit(Callable<T> task): </b> Submits a value-returning task for execution and returns a Future representing the pending results of the task.
+### <b> shutdown(): </b> Initiates an orderly shutdown in which previously submitted tasks are executed, but no new tasks will be accepted.
+### <b> shutdownNow(): </b> Attempts to stop all actively executing tasks, halts the processing of waiting tasks, and returns a list of the tasks that were waiting to be executed.
+### <b> isShutdown(): </b> Returns true if this executor has been shut down.
+### <b> isTerminated(): </b> Returns true if all tasks have completed following shut down.
+### <b> awaitTermination(long timeout, TimeUnit unit): </b> Blocks until all tasks have completed execution after a shutdown request, or the timeout occurs, or the current thread is interrupted, whichever happens first.
+### <b> setCorePoolSize(int corePoolSize): </b> Sets the core number of threads.
+### <b> setMaximumPoolSize(int maximumPoolSize): </b> Sets the maximum allowed number of threads.
+### <b> setKeepAliveTime(long time, TimeUnit unit): </b> Sets the time limit for which threads may remain idle before being terminated.
+### <b> setThreadFactory(ThreadFactory threadFactory): </b> Sets the thread factory used to create new threads.
+### <b> setRejectedExecutionHandler(RejectedExecutionHandler handler): </b> Sets the handler for tasks that cannot be executed by the thread pool.
