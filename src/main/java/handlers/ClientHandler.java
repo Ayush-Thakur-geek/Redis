@@ -6,11 +6,21 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private static final ConcurrentHashMap<String, String> keyValueStore = new ConcurrentHashMap<>();
+    private static final Map<String, Command> commandMap = new HashMap<>();
+
+    static {
+        commandMap.put("PING", ClientHandler::handlePing);
+        commandMap.put("ECHO", ClientHandler::handleEcho);
+        commandMap.put("SET", ClientHandler::handleSet);
+        commandMap.put("GET", ClientHandler::handleGet);
+    }
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -36,73 +46,69 @@ public class ClientHandler implements Runnable {
                         args[i] = in.readLine();  // Read actual argument
                     }
 
-                    // Handle commands like PING
-                    if (args.length > 0 && args[0].equalsIgnoreCase("PING")) {
-                        outWriter.write("+PONG\r\n");
-                        outWriter.flush();
-                        System.out.println("Responded with: +PONG");
-                    }
-                    else if (args.length > 0 && args[0].equalsIgnoreCase("ECHO")) {
-                        if (args.length > 1) {
-                            outWriter.write("+" + args[1] + "\r\n");
-                            outWriter.flush();
+                    if (args.length > 0) {
+                        Command command = commandMap.get(args[0].toUpperCase());
+                        if (command != null) {
+                            command.execute(args, outWriter);
                         } else {
-                            outWriter.write("-ERR Missing argument\r\n");
-                            outWriter.flush();
+                            writeError(outWriter, "Unknown command");
                         }
-                    }
-                    else if (args.length > 0 && args[0].equals("SET")) {
-                        if (args.length > 2) {
-                            SET(Arrays.copyOfRange(args, 1, args.length));
-                            outWriter.write("+OK\r\n");
-                            outWriter.flush();
-                        } else {
-                            outWriter.write("-ERR Missing argument\r\n");
-                            outWriter.flush();
-                        }
-                    } else if (args.length > 0 && args[0].equals("GET")) {
-                        if (args.length > 1) {
-                            String value = GET(args[1]);
-                            if (value == null) {
-                                outWriter.write("$-1\r\n");
-                            } else {
-                                outWriter.write("$" + value.length() + "\r\n" + value + "\r\n");
-                            }
-//                            outWriter.write("+" + value + "\r\n");
-                            outWriter.flush();
-                        } else {
-                            outWriter.write("-ERR Missing argument\r\n");
-                            outWriter.flush();
-                        }
-                    }
-                    // Handle other commands as needed (e.g., COMMAND, DOCS)
-                    else {
-                        outWriter.write("-ERR Unknown command\r\n");
-                        outWriter.flush();
-                        System.out.println("Responded with: ERR Unknown command");
                     }
                 }
-
-
             }
 
-            // If readLine() returns null, the client has closed the connection
             System.out.println("Client disconnected, closing connection.");
         } catch (IOException e) {
             System.out.println("IOException in processInfo: " + e.getMessage());
         }
     }
 
-    private void SET(String[] args) {
-        // Implement the SET command here
-        if (keyValueStore.containsKey(args[0])) {
-            keyValueStore.replace(args[0], args[1]);
+    private static void handlePing(String[] args, OutputStreamWriter outWriter) throws IOException {
+        writeResponse(outWriter, "+PONG");
+    }
+
+    private static void handleEcho(String[] args, OutputStreamWriter outWriter) throws IOException {
+        if (args.length > 1) {
+            writeResponse(outWriter, "+" + args[1]);
         } else {
-            keyValueStore.put(args[0], args[1]);
+            writeError(outWriter, "Missing argument");
         }
     }
 
-    private String GET(String key) {
-        return keyValueStore.get(key);
+    private static void handleSet(String[] args, OutputStreamWriter outWriter) throws IOException {
+        if (args.length > 2) {
+            keyValueStore.put(args[1], args[2]);
+            writeResponse(outWriter, "+OK");
+        } else {
+            writeError(outWriter, "Missing argument");
+        }
+    }
+
+    private static void handleGet(String[] args, OutputStreamWriter outWriter) throws IOException {
+        if (args.length > 1) {
+            String value = keyValueStore.get(args[1]);
+            if (value == null) {
+                writeResponse(outWriter, "$-1");
+            } else {
+                writeResponse(outWriter, "$" + value.length() + "\r\n" + value);
+            }
+        } else {
+            writeError(outWriter, "Missing argument");
+        }
+    }
+
+    private static void writeResponse(OutputStreamWriter outWriter, String response) throws IOException {
+        outWriter.write(response + "\r\n");
+        outWriter.flush();
+    }
+
+    private static void writeError(OutputStreamWriter outWriter, String error) throws IOException {
+        outWriter.write("-ERR " + error + "\r\n");
+        outWriter.flush();
+    }
+
+    @FunctionalInterface
+    private interface Command {
+        void execute(String[] args, OutputStreamWriter outWriter) throws IOException;
     }
 }
