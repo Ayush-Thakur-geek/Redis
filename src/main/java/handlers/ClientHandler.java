@@ -5,12 +5,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ClientHandler implements Runnable {
+    private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     private final Socket clientSocket;
     private static final ConcurrentHashMap<String, String> keyValueStore = new ConcurrentHashMap<>();
     private static final Map<String, Command> commandMap = new HashMap<>();
@@ -79,6 +82,16 @@ public class ClientHandler implements Runnable {
         if (args.length > 2) {
             keyValueStore.put(args[1], args[2]);
             writeResponse(outWriter, "+OK");
+            if (args.length == 5) {
+                if (args[3].equalsIgnoreCase("PX")) {
+                    long delay = Long.parseLong(args[4]);
+                    executorService.schedule(() -> keyValueStore.remove(args[1]), delay, TimeUnit.MILLISECONDS);
+                } else {
+                    writeError(outWriter, "Invalid argument");
+                }
+            } else if (args.length == 4) {
+                writeError(outWriter, "Invalid argument");
+            }
         } else {
             writeError(outWriter, "Missing argument");
         }

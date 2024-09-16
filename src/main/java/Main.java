@@ -9,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
+    private static final int port = 6379;
+
     private static final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
             2, 10, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1000), r -> {
                 Thread t = new Thread(r);
@@ -21,7 +23,6 @@ public class Main {
 
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
-        int port = 6379;
         try {
           serverSocket = new ServerSocket(port);
           // Since the tester restarts your program quite often, setting SO_REUSEADDR
