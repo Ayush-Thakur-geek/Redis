@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 public class ClientHandler implements Runnable {
     private static final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     private final Socket clientSocket;
+    private static String dir;
+    private static String dbfilename;
     private static final ConcurrentHashMap<String, String> keyValueStore = new ConcurrentHashMap<>();
     private static final Map<String, Command> commandMap = new HashMap<>();
 
@@ -23,10 +25,13 @@ public class ClientHandler implements Runnable {
         commandMap.put("ECHO", ClientHandler::handleEcho);
         commandMap.put("SET", ClientHandler::handleSet);
         commandMap.put("GET", ClientHandler::handleGet);
+        commandMap.put("CONFIG", ClientHandler::handleConfig);
     }
 
-    public ClientHandler(Socket clientSocket) {
+    public ClientHandler(Socket clientSocket, String dir, String dbfilename) {
         this.clientSocket = clientSocket;
+        ClientHandler.dir = dir;
+        ClientHandler.dbfilename = dbfilename;
     }
 
     @Override
@@ -104,6 +109,29 @@ public class ClientHandler implements Runnable {
                 writeResponse(outWriter, "$-1");
             } else {
                 writeResponse(outWriter, "$" + value.length() + "\r\n" + value);
+            }
+        } else {
+            writeError(outWriter, "Missing argument");
+        }
+    }
+
+    private static void handleConfig(String[] args, OutputStreamWriter outWriter) throws IOException {
+        if (args.length > 1) {
+            if (args[1].equals("GET")) {
+                String param = args[2].toLowerCase();
+                String value = null;
+                if (param.equals("dir")) {
+                    value = dir;
+                } else if (param.equals("dbfilename")) {
+                    value = dbfilename;
+                }
+                if (value != null) {
+                    writeResponse(outWriter, "*2\r\n$" + param.length() + "\r\n" + param + "\r\n$" + value.length() + "\r\n" + value + "\r\n");
+                } else {
+                    writeError(outWriter, "Unknown parameter");
+                }
+            } else {
+                writeError(outWriter, "Unknown subcommand or wrong number of arguments");
             }
         } else {
             writeError(outWriter, "Missing argument");

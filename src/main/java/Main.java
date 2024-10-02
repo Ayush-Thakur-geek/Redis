@@ -21,6 +21,22 @@ public class Main {
   public static void main(String[] args){
     System.out.println("Logs from your program will appear here!");
 
+    String dir = null;
+    String dbfilename = null;
+
+    for (int i = 0; i < args.length; i++) {
+        if (args[i].equals("--dir")) {
+            dir = args[i + 1];
+        } else if (args[i].equals("--dbfilename")) {
+            dbfilename = args[i + 1];
+        }
+    }
+
+      if (dir == null || dbfilename == null) {
+          System.out.println("Missing required arguments: --dir and --dbfilename");
+          return;
+      }
+
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
         try {
@@ -42,7 +58,7 @@ public class Main {
 
               //or
 
-              threadPoolExecutor.execute(new ClientHandler(finalClientSocket));
+              threadPoolExecutor.execute(new ClientHandler(finalClientSocket, dir, dbfilename));
           }
 
         } catch (IOException e) {
