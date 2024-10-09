@@ -1,5 +1,6 @@
 package handlers;
 
+import javax.xml.crypto.dsig.keyinfo.KeyValue;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -26,6 +27,7 @@ public class ClientHandler implements Runnable {
         commandMap.put("SET", ClientHandler::handleSet);
         commandMap.put("GET", ClientHandler::handleGet);
         commandMap.put("CONFIG", ClientHandler::handleConfig);
+        commandMap.put("KEYS", ClientHandler::handleKeys);
     }
 
     public ClientHandler(Socket clientSocket, String dir, String dbfilename) {
@@ -133,6 +135,24 @@ public class ClientHandler implements Runnable {
             } else {
                 writeError(outWriter, "Unknown subcommand or wrong number of arguments");
             }
+        } else {
+            writeError(outWriter, "Missing argument");
+        }
+    }
+
+    private static void handleKeys(String[] args, OutputStreamWriter outWriter) throws IOException {
+        if (args.length > 1) {
+            String pattern = args[1];
+            int count = 0;
+            StringBuilder response = new StringBuilder();
+            for (String key : keyValueStore.keySet()) {
+                if (key.matches(pattern.replace("*", ".*"))) {
+                    response.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
+                    count++;
+                }
+            }
+            response.insert(0, "*" + count + "\r\n");
+            writeResponse(outWriter, response.toString());
         } else {
             writeError(outWriter, "Missing argument");
         }
